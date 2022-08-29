@@ -1,0 +1,41 @@
+---
+- name: "Test Apache Tomcat Release In Progress"
+  hosts: localhost
+  connection: local
+  become: true
+  vars:
+    - tomcat_version: 9.0.65
+    - jws_install_dir: /opt
+    - run_unit_tests: False
+  pre_tasks:
+    - name: "Run the Apache Tomcat unit test suite"
+      block:
+        - name: "Install required dependencies"
+          include_tasks: fastpackage.yml
+          vars:
+            package_name: "{{ item }}"
+          loop:
+            - zip
+            - unzip
+            - ant
+        - name: "Download source zip"
+          get_url:
+            url: "https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.65/src/apache-tomcat-9.0.65-src.zip"
+            dest: "{{ jws_install_dir }}/apache-tomcat-9.0.65-src.zip"
+        - name: "Unzip source zip"
+          ansible.builtin.unarchive:
+            remote_src: yes
+            src: "{{ jws_install_dir }}/apache-tomcat-9.0.65-src.zip"
+            dest: "{{ jws_install_dir }}"
+            creates: "{{ jws_install_dir }}/apache-tomcat-9.0.65-src"
+        - name: "Run unit tests"
+          ansible.builtin.command:
+            #cmd: "ant -Dexecute.test.apr=false -Dexecute.test.nio2=false test" ## only test one connector, which takes about 15 mins
+            cmd: "ant -version" ## for testing
+            chdir: "{{ jws_install_dir }}/apache-tomcat-9.0.65-src"
+      when: run_unit_tests
+  collections:
+    - middleware_automation.jws
+  tasks:
+    - ansible.builtin.include_role:
+        name: jws
