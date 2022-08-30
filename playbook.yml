@@ -5,8 +5,11 @@
   become: true
   vars:
     - tomcat_version: 9.0.65
-    - jws_install_dir: /opt
+    - tomcat_install_dir: /opt
     - run_unit_tests: False
+    - tomcat_download_url: "https://dlcdn.apache.org/tomcat/tomcat-9/v{{ tomcat_version }}/src/apache-tomcat-{{ tomcat_version }}-src.zip"
+    - tomcat_path_to_zipfile: "{{ tomcat_install_dir }}/apache-tomcat-{{ tomcat_version }}-src.zip"
+    - tomcat_source_home: "{{ tomcat_install_dir }}/apache-tomcat-{{ tomcat_version }}-src"
   pre_tasks:
     - name: "Run the Apache Tomcat unit test suite"
       block:
@@ -18,21 +21,24 @@
             - zip
             - unzip
             - ant
-        - name: "Download source zip"
-          get_url:
-            url: "https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.65/src/apache-tomcat-9.0.65-src.zip"
-            dest: "{{ jws_install_dir }}/apache-tomcat-9.0.65-src.zip"
+
+        - name: "Download source zip from: {{ tomcat_download_url }}"
+          ansible.builtin.get_url:
+            url: "{{ tomcat_download_url }}"
+            dest: "{{ tomcat_path_to_zipfile }}"
+
         - name: "Unzip source zip"
           ansible.builtin.unarchive:
             remote_src: yes
-            src: "{{ jws_install_dir }}/apache-tomcat-9.0.65-src.zip"
-            dest: "{{ jws_install_dir }}"
-            creates: "{{ jws_install_dir }}/apache-tomcat-9.0.65-src"
+            src: "{{ tomcat_path_to_zipfile }}"
+            dest: "{{ tomcat_install_dir }}"
+            creates: "{{ tomcat_source_home }}"
+
         - name: "Run unit tests"
           ansible.builtin.command:
             #cmd: "ant -Dexecute.test.apr=false -Dexecute.test.nio2=false test" ## only test one connector, which takes about 15 mins
             cmd: "ant -version" ## for testing
-            chdir: "{{ jws_install_dir }}/apache-tomcat-9.0.65-src"
+            chdir: "{{ tomcat_source_home }}"
       when: run_unit_tests
   collections:
     - middleware_automation.jws
